@@ -2,8 +2,6 @@ import { Router } from 'express';
 import * as MatchModel from '../models/Match';
 import * as CityModel from '../models/City';
 import { NearestNeighbourStrategy } from '../strategies/NearestNeighbourStrategy';
-// Tip: You can also import DateOnlyStrategy to compare results
-// import { DateOnlyStrategy } from '../strategies/DateOnlyStrategy';
 
 const router = Router();
 
@@ -12,30 +10,35 @@ const router = Router();
  */
 
 // ============================================================
-//  POST /api/route/optimise — YOUR TASK #3
-// ============================================================
-//
-// TODO: Implement this endpoint
-//
-// Request body: { matchIds: ["match-1", "match-5", "match-12", ...], originCityId: "city-atlanta" }
-//
-// Steps:
-//   1. Extract matchIds and originCityId from req.body
-//   2. Fetch the full match data: MatchModel.getByIds(matchIds)
-//   3. Fetch origin city: CityModel.getById(originCityId)
-//   4. Create a strategy instance: new NearestNeighbourStrategy()
-//      (or new DateOnlyStrategy() to test with the working example first)
-//   5. Call strategy.optimise(matches, originCity)
-//   6. Return the optimised route as JSON
-//
-// TIP: Start by using DateOnlyStrategy to verify your endpoint works,
-// then switch to NearestNeighbourStrategy once you've implemented it.
-//
+// POST /api/route/optimise
+// Optimises a travel route for the selected matches using the nearest-neighbour strategy.
 // ============================================================
 
 router.post('/optimise', (req, res) => {
-  // TODO: Replace with your implementation
-  res.status(200).json({});
+  try {
+    const matchIds = req.body.matchIds;
+
+    if (!Array.isArray(matchIds) || matchIds.length === 0) {
+      return res.status(400).json({ error: 'matchIds must be a non-empty array'});
+    }
+
+    const matches = MatchModel.getByIds(matchIds);
+
+    const originCity = req.body.originCityId
+      ? CityModel.getById(req.body.originCityId)
+      : undefined;
+    
+    if (req.body.originCityId && !originCity) {
+      return res.status(400).json({ error: 'Invalid originCityId' });
+    }
+
+    const strategy = new NearestNeighbourStrategy();
+    const route = strategy.optimise(matches, originCity);
+
+    res.json(route);
+  } catch (error) {
+    res.status(500).json({error: 'Failed to optimise route'});
+  }
 });
 
 // ============================================================

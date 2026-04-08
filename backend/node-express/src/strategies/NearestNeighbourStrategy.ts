@@ -39,32 +39,64 @@ export class NearestNeighbourStrategy implements RouteStrategy {
   // ============================================================
   //  Nearest Neighbour Algorithm
   // ============================================================
-  //
-  // TODO: Implement the nearest-neighbour selection
-  //
-  // Steps:
-  //   1. Handle empty/null matches - return createEmptyRoute()
-  //   2. Sort matches by kickoff date
-  //   3. Group matches by date (use match.kickoff.split('T')[0])
-  //   4. For each date (in sorted order):
-  //      - If only 1 match that day, add it to orderedMatches
-  //      - If multiple matches, pick the nearest to currentCity
-  //   5. Track currentCity as you process each match
-  //   6. Build and validate route using buildRoute() and validateRoute()
-  //
-  // Hints:
-  //   - Use calculateDistance(lat1, lon1, lat2, lon2) for distance
-  //   - Group by date: match.kickoff.split('T')[0]
-  //   - The first match in chronological order is your starting point
-  //
-  // ============================================================
 
   optimise(matches: MatchWithCity[], originCity?: City): OptimisedRoute {
-    // TODO: Your code here
     const orderedMatches: MatchWithCity[] = [];
 
-    // TODO: Your code here
+    // Handle null/empty matches
+    if (!matches || matches.length === 0) {
+      return this.createEmptyRoute();
+    }
 
+    // Sort matches by kickoff date
+    const sorted = [...matches].sort(
+      (a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime()
+    );
+
+    // Create lookup table for date -> list of matches
+    const grouped: Record<string, MatchWithCity[]> = {};
+
+    for (const match of sorted) {
+      const date = match.kickoff.split('T')[0];
+
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+
+      grouped[date].push(match);
+    }
+
+    // If no origin city is provided, start route selection from the earliest match city
+    let currentCity = originCity ? { ...originCity } : sorted[0].city;
+
+    // Add nearest match to current city to orderedMatches if multiple matches occur on same date
+    for (const date of Object.keys(grouped)) {
+      const matchesForDate = grouped[date];
+      const chosenMatch = matchesForDate.length === 1
+        ? matchesForDate[0]
+        : [...matchesForDate].sort(
+          (a, b) =>
+            calculateDistance(
+              a.city.latitude, 
+              a.city.longitude, 
+              currentCity.latitude, 
+              currentCity.longitude
+            ) -
+            calculateDistance(
+              b.city.latitude, 
+              b.city.longitude, 
+              currentCity.latitude, 
+              currentCity.longitude
+            )
+        )[0];
+
+      orderedMatches.push(chosenMatch);
+
+      // Track currentCity after processing each match
+      currentCity = chosenMatch.city;
+    }
+
+    // Build and validate route
     const route = this.buildRoute(orderedMatches, originCity);
     this.validateRoute(route, orderedMatches);
     return route;
@@ -89,7 +121,35 @@ export class NearestNeighbourStrategy implements RouteStrategy {
   // ============================================================
 
   private validateRoute(route: OptimisedRoute, matches: MatchWithCity[]): void {
-    // TODO: Your implementation
+    route.warnings = [];
+    route.feasible = true;
+
+    const countriesVisited = new Set<string>();
+
+    for (const stop of route.stops) {
+      countriesVisited.add(stop.city.country);
+    }
+
+    route.countriesVisited = Array.from(countriesVisited);
+    route.missingCountries = NearestNeighbourStrategy.REQUIRED_COUNTRIES.filter(
+      country => !countriesVisited.has(country)
+    );
+
+    // Route must have at least MINIMUM_MATCHES (5)
+    if (matches.length < NearestNeighbourStrategy.MINIMUM_MATCHES) {
+      route.warnings.push(
+        `Route must include at least ${NearestNeighbourStrategy.MINIMUM_MATCHES} matches`
+      );
+      route.feasible = false;
+    }
+
+    // Country coverage - must visit all REQUIRED_COUNTRIES (USA, Mexico, Canada)
+    if (route.missingCountries.length > 0) {
+      route.warnings.push(
+        `Route does not visit all countries. Missing: ${route.missingCountries.join(', ')}`
+      );
+      route.feasible = false;
+    }
   }
 
   // ============================================================
