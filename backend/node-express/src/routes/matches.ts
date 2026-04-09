@@ -29,7 +29,7 @@ router.get('/:id', (req, res) => {
   const id = req.params.id;
 
   try {
-    const match = MatchModel.getById( id );
+    const match = MatchModel.getById(id);
     if (!match) {
       return res.status(404).json({ error: 'Match not found'});
     }
