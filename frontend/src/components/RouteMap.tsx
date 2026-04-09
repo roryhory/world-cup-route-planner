@@ -1,35 +1,13 @@
 /**
- * RouteMap — YOUR TASK (Frontend)
+ * RouteMap
  *
- * Display the optimised travel route on an interactive map.
+ * Renders an interactive Leaflet map for an optimised World Cup route.
  *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * Render the match details inside each marker's Popup.
- * Each stop should display:
- *   - Stop number
- *   - Team names (homeTeam vs awayTeam)
- *   - Kickoff date
- *
- * ============================================================
- * ALREADY IMPLEMENTED:
- * ============================================================
- *
- * - Map centred on North America using react-leaflet
- * - "Start" marker for the origin city
- * - Numbered markers for each stop in the route
- * - Polylines connecting the stops in order
- *
- * ============================================================
- * HINTS:
- * ============================================================
- *
- * - Use stops.map() to iterate over the stops array
- * - Access team names via stop.match.homeTeam.name and stop.match.awayTeam.name
- * - Format the date using: new Date(stop.match.kickoff).toLocaleDateString()
- *
+ * Displays:
+ * - a start marker for the selected origin city
+ * - numbered markers for each itinerary stop
+ * - grouped popup details when multiple stops share the same city
+ * - polylines connecting the route in travel order
  */
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
@@ -140,16 +118,23 @@ function RouteMap({ route, originCity }: RouteMapProps) {
               <br />
               <span style={{ fontSize: '0.85em', color: '#666' }}>{firstStop.city.country}</span>
               <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
-              {/* ============================================================
-                  TODO: Render match details for each stop (YOUR TASK)
-                  ============================================================
-
-                  CSS classes to use:
-                    - <div className="popup-match"> for each match
-                    - <span className="popup-match-number"> for stop number
-                    - <span className="popup-match-date"> for the date
-              */}
+              
+              {/* For each stop show stop number, team names, kickoff date */}
+              {stops.map((stop) => (
+                <div key={stop.stopNumber} className="popup-match">
+                  <span className="popup-match-number">Stop {stop.stopNumber}</span>
+                  <br />
+                  <span className="popup-match-teams">
+                    {stop.match.homeTeam.name} vs {stop.match.awayTeam.name}
+                  </span>
+                  <br />
+                  <span className="popup-match-date">
+                    {new Date(stop.match.kickoff).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
             </Popup>
+
           </Marker>
         );
       })}

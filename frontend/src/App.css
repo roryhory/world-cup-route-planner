@@ -1283,6 +1283,10 @@ body {
   font-weight: 700;
 }
 
+.popup-match-teams {
+  color: #0212ff;
+}
+
 .popup-match-date {
   font-size: 0.85em;
   color: #666;
