@@ -9,87 +9,78 @@ import { buildRoute } from './buildRoute';
 import { calculateDistance } from './haversine';
 
 /**
- * CostCalculator — YOUR TASK #5
+ * Budget calculation utilities for itinerary feasibility.
  *
- * Calculates trip costs for a given set of matches.
- *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * The calculate() method — Build the budget result by:
- *   1. Finding which countries are visited and which are missing
- *   2. Calculating total costs using the helper methods
- *   3. Building the cost breakdown
- *   4. Determining if the trip is feasible
- *   5. Generating suggestions if not feasible
- *   6. Building and returning the final result
- *
- * ============================================================
- * HELPER METHODS PROVIDED (no changes needed):
- * ============================================================
- *
- * - calculateTicketsCost(matches) → total ticket cost
- * - calculateFlightsCost(originCity, matches, flightPrices) → total flight cost
- * - calculateAccommodationCost(matches) → total accommodation cost
- * - getFlightPrice(from, to, flightPrices) → price of a single flight
- * - generateSuggestions(...) → helpful suggestions when over budget
- * - buildRoute(matches, strategy) → builds the route DTO
- *
- * ============================================================
- * CONSTRAINT:
- * ============================================================
- *
- * The user must attend at least 1 match in each country (USA, Mexico, Canada).
- * If any country is missing, the trip is NOT feasible.
- *
+ * Computes ticket, flight, and accommodation costs,
+ * checks country coverage constraints, and returns
+ * suggestions when the trip exceeds the available budget.
  */
 
 const REQUIRED_COUNTRIES = ['USA', 'Mexico', 'Canada'];
 
-// ============================================================
-//  Calculate budget result
-// ============================================================
-//
-// TODO: Implement this function
-//
-// Parameters:
-//   matches       → List of matches to include in the trip
-//   budget        → The user's budget
-//   originCityId  → ID of the starting city
-//   flightPrices  → List of flight prices between cities
-//   originCity    → The starting city object
-//
-// Steps:
-//   1. Sort matches by kickoff date
-//   2. Find countries visited (from match cities)
-//   3. Find missing countries (compare against REQUIRED_COUNTRIES)
-//   4. Calculate costs using helper methods:
-//      - ticketsCost = calculateTicketsCost(sortedMatches)
-//      - flightsCost = calculateFlightsCost(originCity, sortedMatches, flightPrices)
-//      - accommodationCost = calculateAccommodationCost(sortedMatches)
-//   5. Build CostBreakdown with the costs
-//   6. Determine feasibility: no missing countries AND totalCost <= budget
-//   7. Generate suggestions using generateSuggestions() helper
-//   8. Build route using buildRoute(sortedMatches, 'budget-optimised')
-//   9. Return BudgetResult with all the data
-//
-// ============================================================
-
+/**
+ * Calculate whether a selected itinerary is feasible within budget.
+ *
+ * Matches are processed in chronological order to estimate
+ * flights, accommodation nights, and total ticket spend.
+ * Also validates country coverage across USA, Mexico, and Canada.
+ */
 export function calculate(
   matches: MatchWithCity[],
   budget: number,
-  originCityId: string,
   flightPrices: FlightPrice[],
   originCity: City
 ): BudgetResult {
-  // TODO: Your implementation here
+  const sortedMatches = [...matches].sort(
+    (a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime()
+  );
+
+  const countriesVisitedSet = new Set<string>();
+  for (const match of sortedMatches) {
+    countriesVisitedSet.add(match.city.country);
+  }
+  const countriesVisited = Array.from(countriesVisitedSet);
+
+  const missingCountries = REQUIRED_COUNTRIES.filter(
+    country => !countriesVisitedSet.has(country)
+  );
+
+  // Calculate cost breakdown
+  const ticketsCost = calculateTicketsCost(sortedMatches);
+  const flightsCost = calculateFlightsCost(originCity, sortedMatches, flightPrices);
+  const accommodationCost = calculateAccommodationCost(sortedMatches);
+  const totalCost = ticketsCost + flightsCost + accommodationCost;
+
+  const costBreakdown = {
+    flights: flightsCost, 
+    accommodation: accommodationCost, 
+    tickets: ticketsCost, 
+    total: totalCost 
+  };
+  
+  // Check feasibility (visit all three countries and totalCost within budget)
+  const feasible = missingCountries.length === 0 && totalCost <= budget;
+  let suggestions: string[] = [];
+
+  if (!feasible) {
+    suggestions = generateSuggestions(
+      missingCountries,
+      totalCost,
+      budget,
+      sortedMatches
+    );
+  }
+
+  const route = buildRoute(sortedMatches, 'budget-optimised');
+
   return {
-    feasible: false,
-    costBreakdown: { flights: 0, accommodation: 0, tickets: 0, total: 0 },
-    countriesVisited: [],
-    missingCountries: [...REQUIRED_COUNTRIES],
-    suggestions: ['Not implemented yet'],
+    feasible,
+    route,
+    costBreakdown,
+    countriesVisited,
+    missingCountries,
+    minimumBudgetRequired: totalCost,
+    suggestions
   };
 }
 

@@ -1,17 +1,20 @@
 import { Router } from 'express';
 import * as MatchModel from '../models/Match';
 import * as CityModel from '../models/City';
+import * as FlightPriceModel from '../models/FlightPrice';
 import { NearestNeighbourStrategy } from '../strategies/NearestNeighbourStrategy';
+import { calculate } from '../utils/CostCalculator';
 
 const router = Router();
 
 /**
- * Route Optimisation Routes — YOUR TASKS #3 and #5
+ * Route optimisation endpoints.
  */
 
 // ============================================================
 // POST /api/route/optimise
-// Optimises a travel route for the selected matches using the nearest-neighbour strategy.
+// Optimises a travel route for the selected matches using 
+// the nearest-neighbour strategy.
 // ============================================================
 
 router.post('/optimise', (req, res) => {
@@ -42,41 +45,43 @@ router.post('/optimise', (req, res) => {
 });
 
 // ============================================================
-//  POST /api/route/budget — YOUR TASK #5
-// ============================================================
-//
-// TODO: Implement this endpoint
-//
-// Request body:
-// {
-//   "budget": 5000.00,
-//   "matchIds": ["match-1", "match-5", "match-12", ...],
-//   "originCityId": "city-atlanta"
-// }
-//
-// Steps:
-//   1. Extract budget, matchIds, and originCityId from req.body
-//   2. Fetch matches by IDs: MatchModel.getByIds(matchIds)
-//   3. Fetch origin city: CityModel.getById(originCityId)
-//   4. Fetch all flight prices from the database
-//   5. Use the CostCalculator to calculate the budget result
-//   6. Return the BudgetResult as JSON
-//
-// Hint: Import and use the CostCalculator from '../utils/CostCalculator'
-//
-// IMPORTANT CONSTRAINTS:
-//   - User MUST attend at least 1 match in each country (USA, Mexico, Canada)
-//   - If the budget is insufficient, return feasible=false with:
-//     - minimumBudgetRequired: the actual cost
-//     - suggestions: ways to reduce cost
-//   - If countries are missing, return feasible=false with:
-//     - missingCountries: list of countries not covered
-//
+// POST /api/route/budget
+// Calculate trip cost feasibility for a selected itinerary.
 // ============================================================
 
 router.post('/budget', (req, res) => {
-  // TODO: Replace with your implementation
-  res.status(200).json({});
+  try {
+    const budget = req.body.budget;
+    if (!budget || typeof budget !== "number" || budget <= 0) {
+      return res.status(400).json({ error: 'budget must be a positive number'});
+    }
+
+    const matchIds = req.body.matchIds;
+    if (!Array.isArray(matchIds) || matchIds.length === 0) {
+      return res.status(400).json({ error: 'matchIds must be a non-empty array'});
+    }
+    const matches = MatchModel.getByIds(matchIds);
+    if (matches.length === 0) {
+      return res.status(404).json({ error: 'No matches found for the provided matchIds'});
+    }
+
+    const originCityId = req.body.originCityId;
+    if (!originCityId) {
+      return res.status(400).json({ error: 'originCityId is required'});
+    }
+
+    const originCity = CityModel.getById(originCityId);
+    if (!originCity) {
+      return res.status(400).json({ error: 'Invalid originCityId'});
+    }
+
+    const flightPrices = FlightPriceModel.getAll();
+    const result = calculate(matches, budget, flightPrices, originCity);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to calculate cost' })
+  }
 });
 
 // ============================================================
