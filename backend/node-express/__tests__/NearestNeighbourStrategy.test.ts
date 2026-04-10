@@ -1,17 +1,22 @@
 import { NearestNeighbourStrategy } from '../src/strategies/NearestNeighbourStrategy';
-import { MatchWithCity } from '../src/strategies/RouteStrategy';
+import { City, MatchWithCity, Team } from '../src/strategies/RouteStrategy';
 
 /**
- * NearestNeighbourStrategyTest — YOUR TASK #4
+ * Unit tests for NearestNeighbourStrategy.
  *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
+ * Covers:
+ * - happy path route generation across multiple matches
+ * - empty input handling
+ * - single-match edge case
+ * - nearest-city selection when multiple matches occur on the same day
  *
- * Write unit tests for the NearestNeighbourStrategy.
- * Each test has a TODO comment explaining what to test.
- *
+ * Note:
+ * The single-match test is kept from the provided scaffold for completeness.
+ * An additional same-day nearest-city test was added to align with CHALLENGE.md.
  */
+
+// Arbitrary lat and long coord increment value
+const DISTANCE_INCREASE = 50;
 
 describe('NearestNeighbourStrategy', () => {
   let strategy: NearestNeighbourStrategy;
@@ -21,26 +26,140 @@ describe('NearestNeighbourStrategy', () => {
   });
 
   it('should return a valid route for multiple matches (happy path)', () => {
-    // TODO: Implement test
     // Arrange: Create an array of matches across different cities and dates
+    const matches: MatchWithCity[] = [];
+    const cities: City[] = [];
+
+    // All countries visited to satisfy feasibility constraint
+    const countries = ['USA', 'Canada', 'Mexico', 'USA', 'Canada'];
+    let latitude = 0;
+    let longitude = 0;
+
+    for (let i = 0; i < countries.length; i++) {
+      const cityId = 'city-' + (i + 1);
+      const cityName = 'City ' + (i + 1);
+      cities.push(createCity(cityId, cityName, countries[i], latitude, longitude));
+
+      latitude += DISTANCE_INCREASE;
+      longitude += DISTANCE_INCREASE;
+
+      const matchId = 'match-' + (i + 1);
+      const kickoff = createKickoff(i + 1);
+      matches.push(createMatch(matchId, cities[i], kickoff));
+    }
+
     // Act: Call strategy.optimise(matches)
+    const result = strategy.optimise(matches);
+
     // Assert: Verify the result has stops, totalDistance > 0, and strategy = 'nearest-neighbour'
-    fail('Test not implemented');
+    expect(result.feasible).toBe(true);
+    expect(result.stops.length).toBe(countries.length);
+    expect(result.totalDistance).toBeGreaterThan(0);
+    expect(result.strategy).toBe('nearest-neighbour');
   });
 
   it('should return an empty route for empty matches', () => {
-    // TODO: Implement test
     // Arrange: Create an empty array of matches
+    const matches: MatchWithCity[] = [];
+
     // Act: Call strategy.optimise([])
+    const result = strategy.optimise(matches);
+
     // Assert: Verify the result has empty stops and totalDistance = 0
-    fail('Test not implemented');
+    expect(result.stops.length).toBe(0);
+    expect(result.totalDistance).toBe(0);
+    expect(result.feasible).toBe(false);
   });
 
+  // Kept this scaffolded test for completeness.
+  // Added a same-day nearest-city test to cover the CHALLENGE.md requirement.
   it('should return zero distance for a single match', () => {
-    // TODO: Implement test
     // Arrange: Create an array with a single match
+    const city = createCity('city-1', 'City 1', 'USA', 50, 50);
+    const match = createMatch('match-1', city, createKickoff(1));
+
+    const matches: MatchWithCity[] = [match];
+
     // Act: Call strategy.optimise(matches)
+    const result = strategy.optimise(matches);
+
     // Assert: Verify totalDistance = 0 and stops.length = 1
-    fail('Test not implemented');
+    expect(result.stops.length).toBe(1);
+    expect(result.totalDistance).toBe(0);
+    expect(result.feasible).toBe(false);
+  });
+
+  it('should pick the nearest city first when multiple matches occur on the same day', () => {
+    // Arrange: Create an array of matches across different cities occurring on the same day
+    const matches: MatchWithCity[] = [];
+    const cities: City[] = [];
+
+    const n = 5;
+    let latitude = 0;
+    let longitude = 0;
+
+    // Create n cities
+    for (let i = 0; i < n; i++) {
+      const cityId = 'city-' + (i + 1);
+      const cityName = 'City ' + (i + 1);
+      cities.push(createCity(cityId, cityName, 'USA', latitude, longitude));
+
+      latitude += DISTANCE_INCREASE;
+      longitude += DISTANCE_INCREASE;
+    }
+    
+    // Ensure originCity is not the first city in the array
+    const originCity = cities[n - 1];
+
+    for (let i = 0; i < n; i++) {
+      const matchId = 'match-' + (i + 1);
+      matches.push(createMatch(matchId, cities[i], createKickoff(1)));
+    }
+
+    // Act: Call strategy.optimise(matches, originCity)
+    const result = strategy.optimise(matches, originCity);
+
+    // Assert: Verify stops.city.id = originCity.id and totalDistance = 0
+    expect(result.stops.length).toBe(1);
+    expect(result.stops[0].city.id).toBe(originCity.id);
+    expect(result.totalDistance).toBe(0);
   });
 });
+
+const homeTeam: Team = {
+  id: 'home-team',
+  name: 'Home Team',
+  code: 'HT',
+  group: 'A',
+};
+
+const awayTeam: Team = {
+  id: 'away-team',
+  name: 'Away Team',
+  code: 'AT',
+  group: 'A',
+};
+
+const createCity = (id: string, name: string, country: string, latitude: number, longitude: number): City => ({
+  id,
+  name,
+  country,
+  latitude,
+  longitude,
+  stadium: 'Test Stadium',
+  accommodation_per_night: 10,
+});
+
+const createMatch = (id: string, city: City, kickoff: string): MatchWithCity => ({
+  id,
+  homeTeam,
+  awayTeam,
+  city,
+  kickoff,
+  group: 'A',
+  matchDay: 1,
+  ticketPrice: 1,
+});
+
+const createKickoff = (day: number): string =>
+  `2026-06-${String(day).padStart(2, '0')}T17:00:00Z`;
