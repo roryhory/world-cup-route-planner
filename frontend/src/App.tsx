@@ -194,8 +194,8 @@ function App() {
                 id="budget"
                 type="number"
                 value={budget}
-                disabled
-                className="budget-input-disabled"
+                onChange={(e) => setBudget(Number(e.target.value))}
+                className="budget-input-enabled"
               />
             </div>
           </div>

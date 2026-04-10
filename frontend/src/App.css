@@ -911,6 +911,10 @@ body {
   color: #495057;
   cursor: not-allowed;
 }
+.budget-input-enabled {
+  background: #e9ecef;
+  color: #495057;
+}
 
 .trip-setting select {
   padding: 0.6rem 0.75rem;
