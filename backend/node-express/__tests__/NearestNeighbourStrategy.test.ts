@@ -1,5 +1,6 @@
 import { NearestNeighbourStrategy } from '../src/strategies/NearestNeighbourStrategy';
-import { City, MatchWithCity, Team } from '../src/strategies/RouteStrategy';
+import { City, MatchWithCity } from '../src/strategies/RouteStrategy';
+import { createCity, createMatch, createKickoff } from './helpers/testFactories';
 
 /**
  * Unit tests for NearestNeighbourStrategy.
@@ -15,8 +16,11 @@ import { City, MatchWithCity, Team } from '../src/strategies/RouteStrategy';
  * An additional same-day nearest-city test was added to align with CHALLENGE.md.
  */
 
+const REQUIRED_COUNTRIES = ['USA', 'Mexico', 'Canada'];
+
 // Arbitrary lat and long coord increment value
 const DISTANCE_INCREASE = 50;
+
 
 describe('NearestNeighbourStrategy', () => {
   let strategy: NearestNeighbourStrategy;
@@ -31,14 +35,22 @@ describe('NearestNeighbourStrategy', () => {
     const cities: City[] = [];
 
     // All countries visited to satisfy feasibility constraint
-    const countries = ['USA', 'Canada', 'Mexico', 'USA', 'Canada'];
+    const n = 5;
+    const countries: string[] = [];
+    for (let i = 0; i < n; i++) {
+      countries.push(REQUIRED_COUNTRIES[(i % REQUIRED_COUNTRIES.length)]);
+    }
+
     let latitude = 0;
     let longitude = 0;
 
-    for (let i = 0; i < countries.length; i++) {
+    for (let i = 0; i < n; i++) {
       const cityId = 'city-' + (i + 1);
       const cityName = 'City ' + (i + 1);
-      cities.push(createCity(cityId, cityName, countries[i], latitude, longitude));
+      cities.push(createCity(cityId, cityName, countries[i], {
+        latitude,
+        longitude,
+      }));
 
       latitude += DISTANCE_INCREASE;
       longitude += DISTANCE_INCREASE;
@@ -53,7 +65,7 @@ describe('NearestNeighbourStrategy', () => {
 
     // Assert: Verify the result has stops, totalDistance > 0, and strategy = 'nearest-neighbour'
     expect(result.feasible).toBe(true);
-    expect(result.stops.length).toBe(countries.length);
+    expect(result.stops.length).toBe(n);
     expect(result.totalDistance).toBeGreaterThan(0);
     expect(result.strategy).toBe('nearest-neighbour');
   });
@@ -75,7 +87,7 @@ describe('NearestNeighbourStrategy', () => {
   // Added a same-day nearest-city test to cover the CHALLENGE.md requirement.
   it('should return zero distance for a single match', () => {
     // Arrange: Create an array with a single match
-    const city = createCity('city-1', 'City 1', 'USA', 50, 50);
+    const city = createCity('city-1', 'City 1', 'USA');
     const match = createMatch('match-1', city, createKickoff(1));
 
     const matches: MatchWithCity[] = [match];
@@ -102,7 +114,10 @@ describe('NearestNeighbourStrategy', () => {
     for (let i = 0; i < n; i++) {
       const cityId = 'city-' + (i + 1);
       const cityName = 'City ' + (i + 1);
-      cities.push(createCity(cityId, cityName, 'USA', latitude, longitude));
+      cities.push(createCity(cityId, cityName, 'USA', {
+        latitude,
+        longitude,
+      }));
 
       latitude += DISTANCE_INCREASE;
       longitude += DISTANCE_INCREASE;
@@ -125,41 +140,3 @@ describe('NearestNeighbourStrategy', () => {
     expect(result.totalDistance).toBe(0);
   });
 });
-
-const homeTeam: Team = {
-  id: 'home-team',
-  name: 'Home Team',
-  code: 'HT',
-  group: 'A',
-};
-
-const awayTeam: Team = {
-  id: 'away-team',
-  name: 'Away Team',
-  code: 'AT',
-  group: 'A',
-};
-
-const createCity = (id: string, name: string, country: string, latitude: number, longitude: number): City => ({
-  id,
-  name,
-  country,
-  latitude,
-  longitude,
-  stadium: 'Test Stadium',
-  accommodation_per_night: 10,
-});
-
-const createMatch = (id: string, city: City, kickoff: string): MatchWithCity => ({
-  id,
-  homeTeam,
-  awayTeam,
-  city,
-  kickoff,
-  group: 'A',
-  matchDay: 1,
-  ticketPrice: 1,
-});
-
-const createKickoff = (day: number): string =>
-  `2026-06-${String(day).padStart(2, '0')}T17:00:00Z`;
