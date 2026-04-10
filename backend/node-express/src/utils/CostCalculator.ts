@@ -51,7 +51,7 @@ export function calculate(
   const accommodationCost = calculateAccommodationCost(sortedMatches);
   const totalCost = ticketsCost + flightsCost + accommodationCost;
 
-  const costBreakdown = {
+  const costBreakdown: CostBreakdown = {
     flights: flightsCost, 
     accommodation: accommodationCost, 
     tickets: ticketsCost, 
