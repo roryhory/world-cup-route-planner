@@ -2,6 +2,20 @@ import { render, screen } from '@testing-library/react';
 import RouteMap from '../src/components/RouteMap';
 import { OptimisedRoute, ItineraryStop, City, Match, Team  } from '../src/types';
 
+/**
+ * Unit tests for RouteMap.
+ *
+ * Covers:
+ * - placeholder rendering when no route is provided
+ * - map container rendering for valid routes
+ * - marker rendering for each unique stop city
+ * - empty route handling with no markers
+ *
+ * Notes:
+ * - react-leaflet components are mocked to avoid Jest ESM transform issues
+ * - map rendering behavior is tested independently from Leaflet internals
+ */
+
 const testTeam: Team = {
   id: 'test-team',
   name:'Test Team',
