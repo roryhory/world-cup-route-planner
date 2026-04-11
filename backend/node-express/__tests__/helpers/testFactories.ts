@@ -1,5 +1,20 @@
 import { City, MatchWithCity, Team, FlightPrice } from '../../src/strategies/RouteStrategy';
 
+/**
+ * Test factory helpers for backend unit tests.
+ *
+ * Provides reusable builders for:
+ * - teams
+ * - cities
+ * - matches with default ticket and match-day values
+ * - kickoff timestamps
+ * - flight prices
+ *
+ * Supports per-test overrides so fixtures can stay minimal
+ * while still allowing specific properties to be customised
+ * for edge cases and scenario-based assertions.
+ */
+
 const homeTeam: Team = {
   id: 'home-team',
   name: 'Home Team',
