@@ -68,7 +68,7 @@ export function findBestValue(
         continue;
       }
   
-      if (closestOverBudgetCost === null || totalCost < closestOverBudgetCost) {
+      if (!withinBudget && (closestOverBudgetCost === null || totalCost < closestOverBudgetCost)) {
         closestOverBudgetCost = totalCost;
         closestOverBudgetMatches = combination;
       }
