@@ -3,43 +3,26 @@ import { buildRoute } from '../utils/buildRoute';
 import { calculateDistance } from '../utils/haversine';
 
 /**
- * NearestNeighbourStrategy — YOUR TASK #3
+ * Route optimisation using a nearest-neighbour heuristic.
  *
- * Route optimisation using nearest-neighbour heuristic.
+ * Matches are first processed in chronological order.
+ * When multiple matches occur on the same day, the algorithm
+ * selects the match whose host city is geographically closest
+ * to the current city, then updates the current city for the
+ * next day's selection.
  *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * 1. optimise() method - The nearest-neighbour algorithm:
- *    - Sort matches by kickoff date
- *    - Group matches by date
- *    - For each date, pick the match nearest to your current city
- *    - Track your current city as you process each match
- *
- * 2. validateRoute() method - Validation checks:
- *    - Must have at least 5 matches
- *    - Must visit all 3 countries (USA, Mexico, Canada)
- *    - Set feasibility, warnings, and country coverage on the route
- *
- * ============================================================
- * HELPER METHODS PROVIDED (no changes needed):
- * ============================================================
- *
- * - buildRoute(orderedMatches, strategyName) - Builds the route from ordered matches
- * - calculateDistance(lat1, lon1, lat2, lon2) - Calculates distance between coordinates
- *
- * ============================================================
+ * This is a greedy heuristic that prioritises practical travel
+ * efficiency while preserving tournament chronology.
  */
 export class NearestNeighbourStrategy implements RouteStrategy {
   private static readonly STRATEGY_NAME = 'nearest-neighbour';
   private static readonly REQUIRED_COUNTRIES = ['USA', 'Mexico', 'Canada'];
   private static readonly MINIMUM_MATCHES = 5;
 
-  // ============================================================
-  //  Nearest Neighbour Algorithm
-  // ============================================================
-
+  /**
+   * Builds an ordered route by grouping matches by date and
+   * selecting the nearest host city for days with multiple options.
+   */
   optimise(matches: MatchWithCity[], originCity?: City): OptimisedRoute {
     const orderedMatches: MatchWithCity[] = [];
 
@@ -48,7 +31,6 @@ export class NearestNeighbourStrategy implements RouteStrategy {
       return this.createEmptyRoute();
     }
 
-    // Sort matches by kickoff date
     const sorted = [...matches].sort(
       (a, b) => new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime()
     );
@@ -69,7 +51,7 @@ export class NearestNeighbourStrategy implements RouteStrategy {
     // If no origin city is provided, start route selection from the earliest match city
     let currentCity = originCity ? { ...originCity } : sorted[0].city;
 
-    // Add nearest match to current city to orderedMatches if multiple matches occur on same date
+    // For each date, choose the only match or the nearest match to the current city
     for (const date of Object.keys(grouped)) {
       const matchesForDate = grouped[date];
       const chosenMatch = matchesForDate.length === 1
@@ -92,7 +74,6 @@ export class NearestNeighbourStrategy implements RouteStrategy {
 
       orderedMatches.push(chosenMatch);
 
-      // Track currentCity after processing each match
       currentCity = chosenMatch.city;
     }
 
@@ -102,24 +83,14 @@ export class NearestNeighbourStrategy implements RouteStrategy {
     return route;
   }
 
-  // ============================================================
-  //  Validation — YOUR TASK
-  // ============================================================
-  //
-  // TODO: Implement route validation
-  //
-  // Check the following constraints:
-  //   1. Minimum matches - must have at least MINIMUM_MATCHES (5)
-  //   2. Country coverage - must visit all REQUIRED_COUNTRIES (USA, Mexico, Canada)
-  //
-  // Set on the route:
-  //   - route.feasible = true/false
-  //   - route.warnings = list of warning messages
-  //   - route.countriesVisited = list of countries
-  //   - route.missingCountries = list of missing countries
-  //
-  // ============================================================
-
+  /**
+   * Validates route feasibility against challenge constraints:
+   * - minimum 5 selected matches
+   * - coverage across USA, Mexico, and Canada
+   *
+   * Populates feasibility flags, visited countries, missing countries,
+   * and warning messages on the route response.
+   */
   private validateRoute(route: OptimisedRoute, matches: MatchWithCity[]): void {
     route.warnings = [];
     route.feasible = true;
