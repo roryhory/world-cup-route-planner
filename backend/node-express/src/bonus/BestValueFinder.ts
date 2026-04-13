@@ -9,32 +9,17 @@ import { buildRoute } from '../utils/buildRoute';
 import { calculateDistance } from '../utils/haversine';
 
 /**
- * BestValueFinder — BONUS CHALLENGE #1
+ * Best-value itinerary selection utilities.
  *
- * Finds the best value combination of matches that:
- * 1. Includes at least 5 matches
- * 2. Covers all 3 countries (USA, Mexico, Canada)
- * 3. Fits within the budget (or gets as close as possible)
- * 4. Maximizes the number of matches for the money
+ * Finds the strongest match combination for a given budget by:
+ * - requiring at least 5 matches
+ * - requiring coverage across USA, Mexico, and Canada
+ * - prioritising combinations with the highest match count
+ * - preferring the lowest total cost when match count is tied
+ * - falling back to the closest over-budget option when needed
  *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * The findBestValue() method — Find the best combination by:
- *   1. Return an error result if no matches are available
- *   2. Find the combination that fits the budget with the most matches
- *   3. If nothing fits the budget, return the closest option
- *
- * ============================================================
- * HELPER METHODS PROVIDED (no changes needed):
- * ============================================================
- *
- * - generateValidCombinations(matches, targetSize) - generates combinations meeting country requirements
- * - calculateTotalCost(matches, originCity, flightPrices) - calculates total cost
- * - buildResult(combination, cost, withinBudget, budget, originCity, flightPrices) - builds success response
- * - buildErrorResult(message) - builds error response
- *
+ * Uses helper functions to generate valid combinations, estimate
+ * travel and accommodation costs, and build the final response.
  */
 
 const REQUIRED_COUNTRIES = ['USA', 'Mexico', 'Canada'];
@@ -43,29 +28,62 @@ const MINIMUM_MATCHES = 5;
 /**
  * Find the best value combination of matches.
  *
- * TODO: Implement this function to find the best combination of matches within budget.
- *
- * Requirements:
- *   - Return an error result if no matches are available
- *   - Find the combination that fits the budget with the most matches
- *   - If nothing fits the budget, return the closest option
- *
  * @param allMatches All available matches
  * @param budget The user's budget
- * @param originCityId The starting city ID
+ * @param _originCityId Unused, kept to preserve the provided challenge function signature
  * @param flightPrices List of flight prices between cities
  * @param originCity The starting city
  * @returns BestValueResult with the best combination found
  */
+
 export function findBestValue(
   allMatches: MatchWithCity[],
   budget: number,
-  originCityId: string,
+  _originCityId: string,
   flightPrices: FlightPrice[],
   originCity: City
 ): BestValueResult {
-  // TODO: Implement this function
-  return buildErrorResult('Not implemented yet');
+  if (allMatches.length === 0) {
+    return buildErrorResult('No matches are available');
+  }
+
+  let bestWithinBudgetMatches: MatchWithCity[] | null = null;
+  let bestWithinBudgetCost: number | null = null;
+
+  let closestOverBudgetMatches: MatchWithCity[] | null = null;
+  let closestOverBudgetCost: number | null = null;
+
+  for (let targetSize = allMatches.length; targetSize >= MINIMUM_MATCHES; targetSize--) {
+
+    const combinations = generateValidCombinations(allMatches, targetSize);
+
+    for (const combination of combinations) {
+      const totalCost = calculateTotalCost(combination, originCity, flightPrices);
+      const withinBudget = totalCost <= budget;
+
+      // For combinations with the same match count, prefer the lowest total cost.
+      if (withinBudget && (bestWithinBudgetCost === null || totalCost < bestWithinBudgetCost)) {
+        bestWithinBudgetCost = totalCost;
+        bestWithinBudgetMatches = combination;
+        continue;
+      }
+  
+      if (closestOverBudgetCost === null || totalCost < closestOverBudgetCost) {
+        closestOverBudgetCost = totalCost;
+        closestOverBudgetMatches = combination;
+      }
+    } 
+
+    if (bestWithinBudgetMatches !== null && bestWithinBudgetCost !== null) {
+      return buildResult(bestWithinBudgetMatches, bestWithinBudgetCost, true, budget, originCity, flightPrices);
+    }
+  }
+
+  if (closestOverBudgetMatches !== null && closestOverBudgetCost !== null) {
+    return buildResult(closestOverBudgetMatches, closestOverBudgetCost, false, budget, originCity, flightPrices);
+  }
+
+  return buildErrorResult('No valid combinations found');
 }
 
 // ============================================================
