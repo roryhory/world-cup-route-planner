@@ -1,38 +1,24 @@
 import { BestValueResult } from '../types';
 
 /**
- * BestValueDialog — BONUS CHALLENGE #2
+ * BestValueDialog
  *
- * Displays the results from the Best Value Finder API.
+ * Displays the best-value itinerary recommendation returned by the API.
  *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
+ * Note:
+ * - the "Recommended Matches" section appeared to be pre-implemented
+ *   in the provided scaffold and already satisfied the bonus task
+ * - no functional changes were required
  *
- * Render the list of recommended matches in the "Recommended Matches" section.
- * Each match should display:
- *   - Team names (homeTeam vs awayTeam)
- *   - City name
- *   - Kickoff date and time
- *   - Ticket price
+ * Shows:
+ * - budget status and summary message
+ * - cost breakdown against the user's budget
+ * - countries covered by the recommendation
+ * - recommended matches with teams, city, kickoff, and ticket price
  *
- * ============================================================
- * HINTS:
- * ============================================================
- *
- * - Use matches.map() to iterate over the matches array
- * - Format the kickoff date using: new Date(match.kickoff).toLocaleDateString()
- * - The match object contains: homeTeam, awayTeam, city, kickoff, ticketPrice
- *
- * ============================================================
- * CSS CLASSES TO USE:
- * ============================================================
- *
- * - <li className="match-item"> — wrapper for each match
- * - <div className="match-teams"> — for team names
- * - <div className="match-details"> — wrapper for city, date, price
- * - <span className="ticket-price"> — for the ticket price
- *
+ * Supports:
+ * - closing the dialog
+ * - applying the recommended match selection
  */
 
 interface BestValueDialogProps {
